@@ -14,31 +14,41 @@ class UpdateBookingScreen extends StatefulWidget {
 class _UpdateBookingScreenState extends State<UpdateBookingScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController cardNoController;
-  late TextEditingController idNoController;
   late TextEditingController roomRentController;
-  late TextEditingController vehicleNoController;
+  //late TextEditingController vehicleNoController;
   late TextEditingController extraChargeController;
 
   String? _selectedRoomNo;
-  bool _isLoading = false; // Add this line
+  bool _isLoading = false;
+
+  late String maleIdFrontUrl;
+  late String maleIdBackUrl;
+  late String femaleIdFrontUrl;
+  late String femaleIdBackUrl;
 
   @override
   void initState() {
     super.initState();
     cardNoController = TextEditingController(text: widget.guest['card_no']);
-    idNoController = TextEditingController(text: widget.guest['id_no']);
     roomRentController = TextEditingController(text: widget.guest['room_rent']);
-    vehicleNoController = TextEditingController(text: widget.guest['vehicle_no']);
-    extraChargeController = TextEditingController(text: widget.guest['extra_charge']);
+    //vehicleNoController = TextEditingController(text: widget.guest['vehicle_no']);
+    extraChargeController =
+        TextEditingController(text: widget.guest['extra_charge']);
     _selectedRoomNo = widget.guest['room_no'];
+
+    final data = widget.guest.data() as Map<String, dynamic>;
+
+    maleIdFrontUrl = data['id_front_url_male'] ?? data['id_front_url'] ?? '';
+    maleIdBackUrl = data['id_back_url_male'] ?? data['id_back_url'] ?? '';
+    femaleIdFrontUrl = data['id_front_url_female'] ?? '';
+    femaleIdBackUrl = data['id_back_url_female'] ?? '';
   }
 
   @override
   void dispose() {
     cardNoController.dispose();
-    idNoController.dispose();
     roomRentController.dispose();
-    vehicleNoController.dispose();
+    //vehicleNoController.dispose();
     extraChargeController.dispose();
     super.dispose();
   }
@@ -46,58 +56,81 @@ class _UpdateBookingScreenState extends State<UpdateBookingScreen> {
   void updateGuestDetails() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
-        _isLoading = true; // Set loading state to true
+        _isLoading = true;
       });
 
-      String? oldRoomNo = widget.guest['room_no'];
       String newRoomNo = _selectedRoomNo!;
 
       try {
-        // Update guest details in Firestore
         await FirebaseFirestore.instance
             .collection('guests')
             .doc(widget.guest.id)
             .update({
           'card_no': cardNoController.text,
-          'id_no': idNoController.text,
           'room_no': newRoomNo,
           'room_rent': roomRentController.text,
-          'vehicle_no': vehicleNoController.text,
+          //'vehicle_no': vehicleNoController.text,
           'extra_charge': extraChargeController.text,
         });
 
-        // Update previous room status to 'Available' if it is different from the new room
-        // if (oldRoomNo != newRoomNo) {
-        //   await FirebaseFirestore.instance
-        //       .collection('rooms')
-        //       .doc(oldRoomNo)
-        //       .set({'status': 'Available'}, SetOptions(merge: true));
-        // }
-
-        // Update new room status to 'Occupied'
         await FirebaseFirestore.instance
             .collection('rooms')
             .doc(newRoomNo)
             .set({'status': 'Occupied'}, SetOptions(merge: true));
 
-        // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Guest details updated successfully!')),
+          const SnackBar(content: Text('Guest details updated successfully!')),
         );
-
-        // Navigate back after updating
         Navigator.of(context).pop();
       } catch (e) {
-        // Handle errors
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error updating details: $e')),
         );
       } finally {
         setState(() {
-          _isLoading = false; // Set loading state to false
+          _isLoading = false;
         });
       }
     }
+  }
+
+  Widget buildIdPhoto(String label, String imageUrl) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600)),
+        SizedBox(height: 8.h),
+        imageUrl.isNotEmpty
+            ? GestureDetector(
+                onTap: () => _showLargeImage(imageUrl),
+                child: Image.network(
+                  imageUrl,
+                  height: 150.h,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.broken_image),
+                ),
+              )
+            : const Text('No image available'),
+        SizedBox(height: 16.h),
+      ],
+    );
+  }
+
+  void _showLargeImage(String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        child: InteractiveViewer(
+          child: Image.network(
+            imageUrl,
+            fit: BoxFit.contain,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -113,9 +146,7 @@ class _UpdateBookingScreenState extends State<UpdateBookingScreen> {
           body: Padding(
             padding: EdgeInsets.all(16.w),
             child: _isLoading
-                ? const Center(
-                    child:
-                        CircularProgressIndicator()) // Show loading indicator
+                ? const Center(child: CircularProgressIndicator())
                 : SingleChildScrollView(
                     child: Form(
                       key: _formKey,
@@ -134,6 +165,8 @@ class _UpdateBookingScreenState extends State<UpdateBookingScreen> {
                                 ),
                           ),
                           SizedBox(height: 20.h),
+
+                          /// Card No
                           Padding(
                             padding: EdgeInsets.only(bottom: 16.h),
                             child: TextFormField(
@@ -144,36 +177,15 @@ class _UpdateBookingScreenState extends State<UpdateBookingScreen> {
                                 contentPadding: EdgeInsets.symmetric(
                                     horizontal: 16.w, vertical: 12.h),
                               ),
-                              keyboardType: TextInputType.text,
+                              validator: (value) =>
+                                  value == null || value.isEmpty
+                                      ? 'Please enter Card No'
+                                      : null,
                               style: TextStyle(fontSize: 14.sp),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter Card No';
-                                }
-                                return null;
-                              },
                             ),
                           ),
-                          Padding(
-                            padding: EdgeInsets.only(bottom: 16.h),
-                            child: TextFormField(
-                              controller: idNoController,
-                              decoration: InputDecoration(
-                                labelText: 'NIC No',
-                                border: const OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 16.w, vertical: 12.h),
-                              ),
-                              keyboardType: TextInputType.text,
-                              style: TextStyle(fontSize: 14.sp),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter NIC No';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
+
+                          /// Room No
                           Padding(
                             padding: EdgeInsets.only(bottom: 16.h),
                             child: DropdownButtonFormField<String>(
@@ -186,25 +198,23 @@ class _UpdateBookingScreenState extends State<UpdateBookingScreen> {
                                       style: TextStyle(fontSize: 14.sp)),
                                 ),
                               ),
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedRoomNo = value;
-                                });
-                              },
+                              onChanged: (value) => setState(() {
+                                _selectedRoomNo = value;
+                              }),
                               decoration: InputDecoration(
                                 labelText: 'Room No',
                                 border: const OutlineInputBorder(),
                                 contentPadding: EdgeInsets.symmetric(
                                     horizontal: 16.w, vertical: 12.h),
                               ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please select a room number';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  value == null || value.isEmpty
+                                      ? 'Please select a room number'
+                                      : null,
                             ),
                           ),
+
+                          /// Room Rent
                           Padding(
                             padding: EdgeInsets.only(bottom: 16.h),
                             child: TextFormField(
@@ -217,28 +227,30 @@ class _UpdateBookingScreenState extends State<UpdateBookingScreen> {
                               ),
                               keyboardType: TextInputType.number,
                               style: TextStyle(fontSize: 14.sp),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter Room Rent';
-                                }
-                                return null;
-                              },
+                              validator: (value) =>
+                                  value == null || value.isEmpty
+                                      ? 'Please enter Room Rent'
+                                      : null,
                             ),
                           ),
-                          Padding(
-                            padding: EdgeInsets.only(bottom: 16.h),
-                            child: TextFormField(
-                              controller: vehicleNoController,
-                              decoration: InputDecoration(
-                                labelText: 'Vehicle No',
-                                border: const OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 16.w, vertical: 12.h),
-                              ),
-                              keyboardType: TextInputType.text,
-                              style: TextStyle(fontSize: 14.sp),
-                            ),
-                          ),
+
+                          /// Vehicle No
+                          // Padding(
+                          //   padding: EdgeInsets.only(bottom: 16.h),
+                          //   child: TextFormField(
+                          //     controller: vehicleNoController,
+                          //     decoration: InputDecoration(
+                          //       labelText: 'Vehicle No',
+                          //       border: const OutlineInputBorder(),
+                          //       contentPadding: EdgeInsets.symmetric(
+                          //           horizontal: 16.w, vertical: 12.h),
+                          //     ),
+                          //     keyboardType: TextInputType.text,
+                          //     style: TextStyle(fontSize: 14.sp),
+                          //   ),
+                          // ),
+
+                          /// Extra Charge
                           Padding(
                             padding: EdgeInsets.only(bottom: 16.h),
                             child: TextFormField(
@@ -253,26 +265,30 @@ class _UpdateBookingScreenState extends State<UpdateBookingScreen> {
                               style: TextStyle(fontSize: 14.sp),
                             ),
                           ),
+
+                          /// ID Photos male
+                          buildIdPhoto('Male ID Front Photo', maleIdFrontUrl),
+                          buildIdPhoto('Male ID Back Photo', maleIdBackUrl),
+
+                          //Id Photos Female
+                          if (femaleIdFrontUrl.isNotEmpty || femaleIdBackUrl.isNotEmpty) ...[
+                            buildIdPhoto('Female ID Front Photo', femaleIdFrontUrl),
+                            buildIdPhoto('Female ID Back Photo', femaleIdBackUrl),
+                          ],
+
                           SizedBox(height: 30.h),
-                          ElevatedButton(
-                            onPressed: updateGuestDetails,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              padding: EdgeInsets.symmetric(vertical: 15.h),
-                              textStyle: TextStyle(fontSize: 16.sp),
-                            ),
-                            child: const Text(
-                              'Update',
-                              style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ),
                         ],
                       ),
                     ),
                   ),
+          ),
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.centerFloat,
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: updateGuestDetails,
+            label: const Text('Update'),
+            icon: const Icon(Icons.update),
+            backgroundColor: Colors.green,
           ),
         );
       },

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:guest_house_rental_app/authentication/report_login_screen.dart';
+import 'package:guest_house_rental_app/screens/charges_and_expenses_screen.dart';
 import 'package:guest_house_rental_app/screens/guest_register_screen.dart';
 import 'room_status_screen.dart';
-import 'daily_report_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,7 +17,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _children = [
     const GuestRegisterScreen(),
     const ReportLoginScreen(),
-    const RoomStatusScreen(),
+    const ChargesAndExpensesScreen(),
+    //const RoomStatusScreen(),
   ];
 
   @override
@@ -48,10 +49,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           BottomNavigationBarItem(
             icon: Icon(
-              Icons.home_filled,
+              Icons.add_link,
               size: 24.sp, // Responsive icon size
             ),
-            label: 'Room Status',
+            label: 'Charges',
           ),
         ],
         selectedLabelStyle: TextStyle(fontSize: 14.sp), // Responsive font size

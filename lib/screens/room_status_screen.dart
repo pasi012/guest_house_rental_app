@@ -55,10 +55,7 @@ class _RoomStatusScreenState extends State<RoomStatusScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Room Status',
-          style: TextStyle(fontSize: 20.sp),
-        ),
+        title: const Center(child: Text('Room Status', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
         backgroundColor: Colors.blueAccent,
       ),
       body: Padding(
